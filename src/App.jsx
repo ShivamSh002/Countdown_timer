@@ -1,77 +1,91 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./App.css";
 
 function App() {
-  const [date, setDate] = useState(new Date());
-  const [dateValidate, setDateValidate] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(0);
+  const [days, setDays] = useState(0);
+  const [hours, setHours] = useState(0);
+  const [mins, setMins] = useState(0);
   const [sec, setSec] = useState(0);
-  const [currMin, setCurrMin] = useState(new Date().getMinutes());
-  const [currHour, setCurrHour] = useState(new Date().getHours());
-  
-  const timeDifference = date.getTime() - Date.now();
-  const daysDifference = Math.ceil(timeDifference / (1000 * 3600 * 24));
+  const [error, setError] = useState(false);
+  const [isRunning, setIsRunning] = useState(false);
+  const [over, setOver] = useState(false);
 
-  const validation = () => {
-    setDateValidate(daysDifference > 99);
-  };
+  useEffect(() => {
+    let interval;
 
-  const timer = () => {
-    const intervalId = setInterval(() => {
-      setSec((prevSec) => {
-        if (prevSec === 0) {
-          if (currMin === 0 && currHour === 0 && daysDifference === 0) {
-            clearInterval(intervalId);
-          } else if (currMin === 0 && currHour === 0 && daysDifference > 0) {
-            setCurrHour(23);
-            setCurrMin(59);
-            return 59;
-          } else if (currMin === 0 && currHour > 0) {
-            setCurrHour((prevHour) => prevHour - 1);
-            return 59;
-          } else if (currMin > 0) {
-            setCurrMin((prevMin) => prevMin - 1);
-            return 59;
+    if (isRunning && selectedDate) {
+      const calculateTime = () => {
+        const time = selectedDate - Date.now();
+        setDays(Math.floor(time / (1000 * 60 * 60 * 24)));
+        if (days <= 99) {
+          if (time > 0) {
+            setHours(Math.floor((time / (1000 * 60 * 60)) % 24));
+            setMins(Math.floor((time / 1000 / 60) % 60));
+            setSec(Math.floor((time / 1000) % 60));
+          } else {
+            clearInterval(interval);
+            setDays(0);
+            setOver(true);
           }
         } else {
-          return prevSec - 1;
+          setIsRunning(false);
+          clearInterval(interval);
+          setError(true);
         }
-      });
-    }, 1000);
-  };
+      };
 
+      interval = setInterval(calculateTime, 1000);
+      calculateTime();
+    }
+
+    return () => clearInterval(interval);
+  }, [selectedDate, isRunning, days]);
   const handleClick = () => {
-    validation();
-    timer();
+    setIsRunning(!isRunning);
   };
 
   return (
-    <div>
-      <h1>Countdown Timer</h1>
+    <div className="wrapper">
+      <div className="heading">
+        <h1>
+          <span className="heading1">Countdown</span>{" "}
+          <span className="heading2">Timer</span>
+        </h1>
+      </div>
+
       <input
         type="datetime-local"
         id="meeting-time"
-        onChange={(e) => setDate(new Date(e.target.value))}
+        onChange={(e) => setSelectedDate(Date.parse(e.target.value))}
       />
 
-      <button onClick={handleClick}>Start Timer</button>
-
-      {dateValidate ? (
-        <p>Selected time is more than 100 days</p>
+      <div className="btn">
+        <button onClick={handleClick}>
+          {isRunning ? "Cancel Timer" : "Start Timer"}
+        </button>
+      </div>
+      {over ? (
+        <p className="para">
+          The Countdown is over! What's next on your adventure?
+        </p>
+      ) : error ? (
+        <h3 className="para">Selected time is more than 100 days</h3>
       ) : (
         <div className="display">
-          <div className="daydisplay">
-            <p>{daysDifference}</p>
+          <div className="displaybox">
+            <p>{days}</p>
             <p>Days</p>
           </div>
-          <div className="hourdisplay">
-            <p>{currHour}</p>
+          <div className="displaybox">
+            <p>{hours}</p>
             <p>Hours</p>
           </div>
-          <div className="mindisplay">
-            <p>{currMin}</p>
+          <div className="displaybox">
+            <p>{mins}</p>
             <p>Minutes</p>
           </div>
-          <div className="secdisplay">
+          <div className="displaybox">
             <p>{sec}</p>
             <p>Seconds</p>
           </div>
